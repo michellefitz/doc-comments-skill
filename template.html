@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Draft Review</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f4f0;
+      color: #1a1a1a;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: #1a1a1a;
+      color: #fff;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    header h1 { font-size: 14px; font-weight: 500; opacity: 0.8; }
+    header .hint { font-size: 12px; opacity: 0.5; }
+
+    .copy-btn {
+      background: #fff;
+      color: #1a1a1a;
+      border: none;
+      padding: 7px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .copy-btn:hover { opacity: 0.8; }
+    .copy-btn.copied { background: #22c55e; color: #fff; }
+
+    .copy-btn.secondary {
+      background: transparent;
+      color: rgba(255,255,255,0.7);
+      border: 1px solid rgba(255,255,255,0.25);
+      font-size: 12px;
+      padding: 6px 12px;
+    }
+    .copy-btn.secondary:hover { background: rgba(255,255,255,0.1); opacity: 1; }
+    .copy-btn.secondary.copied { background: #22c55e; color: #fff; border-color: #22c55e; }
+
+    .header-right { display: flex; align-items: center; gap: 8px; }
+    .header-divider { width: 1px; height: 20px; background: rgba(255,255,255,0.15); margin: 0 4px; }
+
+    .layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Reading pane ── */
+    .reading-pane {
+      flex: 1;
+      overflow-y: auto;
+      padding: 48px;
+    }
+
+    .post-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #999;
+      margin-bottom: 32px;
+    }
+
+    .para-block {
+      font-size: 17px;
+      line-height: 1.75;
+      margin-bottom: 24px;
+    }
+
+    /* Each sentence is an inline span */
+    .sentence {
+      cursor: pointer;
+      border-radius: 3px;
+      padding: 1px 2px;
+      transition: background 0.1s;
+    }
+
+    .sentence:hover {
+      background: #eceae4;
+    }
+
+    .sentence.active {
+      background: #fef3c7;
+      outline: 1px solid #f59e0b;
+    }
+
+    .sentence.has-comment {
+      background: #fef9ec;
+      border-bottom: 2px solid #f59e0b;
+    }
+
+    .sentence.active.has-comment {
+      background: #fef3c7;
+    }
+
+    /* ── Comments sidebar ── */
+    .sidebar {
+      width: 320px;
+      flex-shrink: 0;
+      background: #fff;
+      border-left: 1px solid #e5e5e5;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .sidebar-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #e5e5e5;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #999;
+      flex-shrink: 0;
+    }
+
+    .sidebar-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: #bbb;
+      font-size: 13px;
+      margin-top: 40px;
+      line-height: 1.6;
+    }
+
+    .active-input {
+      margin-bottom: 16px;
+      background: #fef9ec;
+      border: 1px solid #f59e0b;
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .active-input .quote {
+      font-size: 12px;
+      color: #92400e;
+      font-style: italic;
+      margin-bottom: 8px;
+      line-height: 1.5;
+    }
+
+    .active-input textarea {
+      width: 100%;
+      border: 1px solid #fcd34d;
+      border-radius: 5px;
+      padding: 8px;
+      font-size: 13px;
+      font-family: inherit;
+      resize: none;
+      outline: none;
+      background: #fff;
+      min-height: 72px;
+    }
+
+    .active-input textarea:focus { border-color: #f59e0b; }
+
+    .input-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .btn-save {
+      background: #1a1a1a;
+      color: #fff;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .btn-save:hover { background: #333; }
+
+    .btn-cancel {
+      background: transparent;
+      color: #999;
+      border: 1px solid #e5e5e5;
+      padding: 6px 12px;
+      border-radius: 5px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .btn-cancel:hover { color: #555; }
+
+    .comment-item {
+      margin-bottom: 12px;
+      background: #f9f9f9;
+      border-radius: 8px;
+      padding: 12px;
+      border-left: 3px solid #f59e0b;
+    }
+
+    .comment-item .quote {
+      font-size: 11px;
+      color: #999;
+      font-style: italic;
+      margin-bottom: 6px;
+      line-height: 1.5;
+    }
+
+    .comment-item .note {
+      font-size: 13px;
+      color: #1a1a1a;
+      line-height: 1.5;
+    }
+
+    .comment-item .delete-btn {
+      background: none;
+      border: none;
+      color: #ccc;
+      font-size: 11px;
+      cursor: pointer;
+      margin-top: 6px;
+      padding: 0;
+    }
+    .comment-item .delete-btn:hover { color: #e53e3e; }
+
+    .comments-divider {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #ccc;
+      margin: 16px 0 8px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>__DOC_TITLE_PLACEHOLDER__</h1>
+    <div class="hint">Click any sentence to leave a comment</div>
+  </div>
+  <div class="header-right">
+    <button class="copy-btn secondary" id="copyPlainBtn" onclick="copyDraft('plain')">Copy plain text</button>
+    <button class="copy-btn secondary" id="copyMdBtn" onclick="copyDraft('markdown')">Copy as Markdown</button>
+    <button class="copy-btn secondary" id="copyFmtBtn" onclick="copyDraft('formatted')">Copy formatted</button>
+    <div class="header-divider"></div>
+    <button class="copy-btn" id="copyBtn" onclick="copyFeedback()">Copy feedback for Claude</button>
+  </div>
+</header>
+
+<div class="layout">
+  <div class="reading-pane" id="readingPane">
+    <div class="post-title">__DOC_TITLE_PLACEHOLDER__</div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-header">Comments</div>
+    <div class="sidebar-content" id="sidebarContent">
+      <div class="empty-state">Click a sentence to add a comment</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const DRAFT = __CONTENT_PLACEHOLDER__;
+
+  // Flatten into sentences: [{ id, paraIndex, sentIndex, text }]
+  const SENTENCES = [];
+
+  function splitSentences(text) {
+    // Split on sentence-ending punctuation followed by a space
+    const raw = text.split(/(?<=[.!?])\s+/);
+    return raw.map(s => s.trim()).filter(s => s.length > 0);
+  }
+
+  DRAFT.forEach((para, pi) => {
+    splitSentences(para).forEach((sent, si) => {
+      SENTENCES.push({ id: `p${pi}s${si}`, paraIndex: pi, sentIndex: si, text: sent });
+    });
+  });
+
+  let comments = {}; // { sentenceId: [{ text, id }] }
+  let activeId = null;
+
+  function renderParagraphs() {
+    const pane = document.getElementById('readingPane');
+    const title = pane.querySelector('.post-title');
+    pane.innerHTML = '';
+    pane.appendChild(title);
+
+    DRAFT.forEach((_, pi) => {
+      const block = document.createElement('p');
+      block.className = 'para-block';
+
+      const paraSentences = SENTENCES.filter(s => s.paraIndex === pi);
+      paraSentences.forEach((s, idx) => {
+        const span = document.createElement('span');
+        span.className = 'sentence';
+        span.dataset.id = s.id;
+        // Add a space before sentences (except the first)
+        if (idx > 0) block.appendChild(document.createTextNode(' '));
+        span.textContent = s.text;
+        span.onclick = () => selectSentence(s.id);
+        updateSentenceState(span, s.id);
+        block.appendChild(span);
+      });
+
+      pane.appendChild(block);
+    });
+  }
+
+  function updateSentenceState(el, id) {
+    const count = (comments[id] || []).length;
+    el.classList.remove('active', 'has-comment');
+    if (id === activeId) el.classList.add('active');
+    if (count > 0) el.classList.add('has-comment');
+  }
+
+  function refreshAllSentenceStates() {
+    document.querySelectorAll('.sentence').forEach(el => {
+      updateSentenceState(el, el.dataset.id);
+    });
+  }
+
+  function selectSentence(id) {
+    activeId = id;
+    refreshAllSentenceStates();
+    renderSidebar();
+    setTimeout(() => {
+      const ta = document.querySelector('.active-input textarea');
+      if (ta) ta.focus();
+    }, 50);
+  }
+
+  function renderSidebar() {
+    const content = document.getElementById('sidebarContent');
+    const allComments = Object.entries(comments)
+      .flatMap(([id, cs]) => {
+        const sentence = SENTENCES.find(s => s.id === id);
+        return cs.map(c => ({ sentenceId: id, sentenceText: sentence ? sentence.text : '', ...c }));
+      })
+      // Sort by sentence order
+      .sort((a, b) => {
+        const sa = SENTENCES.findIndex(s => s.id === a.sentenceId);
+        const sb = SENTENCES.findIndex(s => s.id === b.sentenceId);
+        return sa - sb;
+      });
+
+    let html = '';
+
+    if (activeId !== null) {
+      const sentence = SENTENCES.find(s => s.id === activeId);
+      const quote = sentence ? sentence.text : '';
+      html += `
+        <div class="active-input">
+          <div class="quote">"${escapeHtml(quote)}"</div>
+          <textarea id="commentInput" placeholder="What would you change about this?" rows="3"></textarea>
+          <div class="input-actions">
+            <button class="btn-save" onclick="saveComment()">Add comment</button>
+            <button class="btn-cancel" onclick="clearActive()">Cancel</button>
+          </div>
+        </div>
+      `;
+    }
+
+    if (allComments.length > 0) {
+      html += `<div class="comments-divider">All comments (${allComments.length})</div>`;
+      allComments.forEach(c => {
+        const shortQuote = c.sentenceText.length > 60
+          ? c.sentenceText.substring(0, 60) + '…'
+          : c.sentenceText;
+        html += `
+          <div class="comment-item">
+            <div class="quote">"${escapeHtml(shortQuote)}"</div>
+            <div class="note">${escapeHtml(c.text)}</div>
+            <button class="delete-btn" onclick="deleteComment('${c.sentenceId}', '${c.id}')">Remove</button>
+          </div>
+        `;
+      });
+    } else if (activeId === null) {
+      html += `<div class="empty-state">Click a sentence to add a comment</div>`;
+    }
+
+    content.innerHTML = html;
+  }
+
+  function saveComment() {
+    const ta = document.getElementById('commentInput');
+    const text = ta ? ta.value.trim() : '';
+    if (!text || activeId === null) return;
+
+    if (!comments[activeId]) comments[activeId] = [];
+    comments[activeId].push({ text, id: Date.now().toString() });
+
+    activeId = null;
+    refreshAllSentenceStates();
+    renderSidebar();
+  }
+
+  function clearActive() {
+    activeId = null;
+    refreshAllSentenceStates();
+    renderSidebar();
+  }
+
+  function deleteComment(sentenceId, id) {
+    if (!comments[sentenceId]) return;
+    comments[sentenceId] = comments[sentenceId].filter(c => c.id !== id);
+    if (comments[sentenceId].length === 0) delete comments[sentenceId];
+    refreshAllSentenceStates();
+    renderSidebar();
+  }
+
+  function copyDraft(format) {
+    const btnMap = { plain: 'copyPlainBtn', markdown: 'copyMdBtn', formatted: 'copyFmtBtn' };
+    const btn = document.getElementById(btnMap[format]);
+
+    function flashBtn() {
+      const orig = btn.textContent;
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 2000);
+    }
+
+    if (format === 'plain') {
+      const text = DRAFT.join('\n\n');
+      fallbackCopy(text, flashBtn);
+      if (navigator.clipboard) navigator.clipboard.writeText(text).then(flashBtn).catch(() => fallbackCopy(text, flashBtn));
+
+    } else if (format === 'markdown') {
+      const text = DRAFT.join('\n\n');
+      if (navigator.clipboard) navigator.clipboard.writeText(text).then(flashBtn).catch(() => fallbackCopy(text, flashBtn));
+      else fallbackCopy(text, flashBtn);
+
+    } else if (format === 'formatted') {
+      const html = DRAFT.map(p => `<p>${escapeHtml(p)}</p>`).join('\n');
+      const plain = DRAFT.join('\n\n');
+      if (navigator.clipboard && window.ClipboardItem) {
+        const item = new ClipboardItem({
+          'text/html': new Blob([html], { type: 'text/html' }),
+          'text/plain': new Blob([plain], { type: 'text/plain' })
+        });
+        navigator.clipboard.write([item]).then(flashBtn).catch(() => fallbackCopy(plain, flashBtn));
+      } else {
+        fallbackCopy(plain, flashBtn);
+      }
+    }
+  }
+
+  function copyFeedback() {
+    const allComments = Object.entries(comments)
+      .flatMap(([id, cs]) => {
+        const sentence = SENTENCES.find(s => s.id === id);
+        return cs.map(c => ({ sentenceId: id, sentenceText: sentence ? sentence.text : '', note: c.text }));
+      })
+      .sort((a, b) => {
+        const sa = SENTENCES.findIndex(s => s.id === a.sentenceId);
+        const sb = SENTENCES.findIndex(s => s.id === b.sentenceId);
+        return sa - sb;
+      });
+
+    if (allComments.length === 0) {
+      alert('No comments yet — click a sentence to start.');
+      return;
+    }
+
+    const text = allComments.map(c =>
+      `"${c.sentenceText}"\n→ ${c.note}`
+    ).join('\n\n');
+
+    // Try modern clipboard API first, fall back to textarea trick
+    function onCopied() {
+      const btn = document.getElementById('copyBtn');
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'Copy feedback for Claude';
+        btn.classList.remove('copied');
+      }, 2000);
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+    } else {
+      fallbackCopy(text, onCopied);
+    }
+  }
+
+  function fallbackCopy(text, onSuccess) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try {
+      document.execCommand('copy');
+      onSuccess();
+    } catch(e) {
+      // Last resort: show a modal with the text to copy manually
+      showCopyModal(text);
+    }
+    document.body.removeChild(ta);
+  }
+
+  function showCopyModal(text) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000;';
+    overlay.innerHTML = `
+      <div style="background:#fff;border-radius:10px;padding:24px;width:480px;max-width:90vw;">
+        <div style="font-size:13px;font-weight:600;margin-bottom:12px;">Copy this feedback for Claude</div>
+        <textarea readonly style="width:100%;height:200px;font-size:12px;font-family:monospace;border:1px solid #e5e5e5;border-radius:6px;padding:10px;resize:none;">${text.replace(/</g,'&lt;')}</textarea>
+        <button onclick="this.closest('div').parentElement.remove()" style="margin-top:12px;background:#1a1a1a;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;">Close</button>
+      </div>
+    `;
+    // Auto-select text in textarea
+    overlay.querySelector('textarea').addEventListener('focus', e => e.target.select());
+    document.body.appendChild(overlay);
+    setTimeout(() => overlay.querySelector('textarea').focus(), 50);
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  document.addEventListener('keydown', e => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') saveComment();
+    if (e.key === 'Escape') clearActive();
+  });
+
+  renderParagraphs();
+  renderSidebar();
+</script>
+</body>
+</html>
