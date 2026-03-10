@@ -57,7 +57,7 @@ If you want to change the design, edit `template.html`. If you want to change th
 
 ## Built with
 
-Built using Claude Cowork. Originally created as part of a writing workflow for [Michelle's Substack](#) — wrote the first post, needed a better way to give feedback on it, built the tool in the same session.
+Built using Claude Cowork. Originally created as part of a writing workflow for [Michelle's Substack](https://shelliefitz.substack.com/) — wrote the first post, needed a better way to give feedback on it, built the tool in the same session.
 
 ---
 
