@@ -4,7 +4,8 @@ A skill for [Claude Cowork](https://claude.ai) that generates an interactive HTM
 
 Click a sentence, leave a comment, copy structured feedback back to Claude. Useful for reviewing and iterating on any piece of writing — articles, emails, specs, reports, proposals.
 
-![doc-comments screenshot](screenshot.png)
+![doc-comments screenshot](<img width="756" height="493" alt="Copy plain teet" src="https://github.com/user-attachments/assets/1c107c05-7f55-4008-b180-05f0de258a00" />
+)
 
 ---
 
